@@ -11,8 +11,8 @@ def main():
 
     # Define hyperparameters
     learning_rate = 0.0007
-    num_epochs =15
-    train_batch_size = 200
+    num_epochs = 25
+    train_batch_size = 300
     #dropout_rate = 0.5
     num_classes = 2  # number of classes
     display_step = 2  # 經過多少step後，計算accuracy並顯示出來
@@ -49,20 +49,11 @@ def main():
     cat_test = os.listdir(cat_path)
     dog_test = os.listdir(dog_path)
     for sample in cat_test:
-        test_img_path.extend(os.path.join(cat_path, sample))
+        test_img_path.append(os.path.join(cat_path, sample))
         test_label.append(0)
     for sample in dog_test:
-        test_img_path.extend(os.path.join(dog_path, sample))
+        test_img_path.append(os.path.join(dog_path, sample))
         test_label.append(1)
-    # shuffle
-    permutation = np.random.permutation(len(test_img_path))
-    path = []
-    label = []
-    for i in permutation:
-        path.append(test_img_path[i])
-        label.append(test_label[i])
-    test_path = path
-    test_label = label
     
     # Create the Dataset object that imports training data
     train_data = ImageDataGenerator(
@@ -74,9 +65,9 @@ def main():
         shuffle=True)
 
     test_data = ImageDataGenerator(
-            images = test_path,
+            images = test_img_path,
             labels = test_label,
-            batch_size = len(test_path)
+            batch_size = len(test_img_path),
             num_classes = num_classes,
             img_format = 'jpg',
             shuffle = True)
@@ -95,12 +86,9 @@ def main():
     training_initalizer = train_iterator.initializer
     # Define next batch (element) for Iterator to get
     train_next_batch = train_iterator.get_next()
-
-    # test iterator
-    test_iterator = test_data.data.make_inializable_iterator()
-    test_init = test_iterator.initializer
-    test_batch = test_iterator.get_next()
     
+    test_iterator = test_data.data.make_one_shot_iterator() # make_initializable_iterator is not available for single batch
+    test_set = test_iterator.get_next()
     
     y = tf.placeholder(tf.float32, [None, num_classes])
 
@@ -140,11 +128,11 @@ def main():
         sess.run(tf.global_variables_initializer())
         writer.add_graph(sess.graph)  # add new session graph to current event file
 
-        sess.run(training_initalizer)
-                
+        test_data, test_label = sess.run(test_set)
+        
         for epoch in range(num_epochs):
-            sess.run(training_initalizer)  # reset iterator, get batches of train data one by one batch
-            #print(sess.run(train_next_batch[0]))
+            sess.run(training_initalizer) # reinitialize iterator every epoch
+            
             print("{}: Epoch number: {} start".format(datetime.now(), epoch + 1)) # show the clock time of each training epoch start
             train_acc = 0
             Loss = 0
@@ -168,14 +156,13 @@ def main():
             
         
             # Testing accuracy
-            sess.run(test_init)
-            test_batch, label_batch = sess.run(test_batch)
-            test_acc = sess.run(accuracy, feed_dict = {Alexnet.input_img: test_batch,
-                                                       y: label_batch})
+            
+            test_acc = sess.run(accuracy, feed_dict = {Alexnet.input_img: test_data,
+                                                       y: test_label})
             print('Testing acc: {}'.format(test_acc))
         
         # after finished training, save the model
-        save_path = saver.save(sess, './tmp/model.ckpt')
+        save_path = saver.save(sess, './tmp/test_model')
         print('Model saved in: %s'%save_path)
             
 

@@ -41,13 +41,7 @@ class ImageDataGenerator():
     def parse_function_train(self, filename, label):  # map_func: each elements in dataset viewed as input of parse_function_train, which is [sample, label]
         one_hot = tf.one_hot(label, self.num_class)  # create one-hot encoded output labels
         img_string = tf.read_file(filename)   # read file from path, filename & output data type = Tensor
-        if self.img_format == 'jpg':
-            img_decode = tf.image.decode_jpeg(img_string, channels = 3) # decode JPG file into uint8 tensor, channel = 3 which is RGB image output
-        elif self.img_format == 'png':
-            img_decode = tf.image.decode_png(img_string, channels = 3)
-        else:
-            print("Error! Can't identify the format of image")
-
+        img_decode = tf.image.decode_jpeg(img_string, channels = 3) # decode JPG file into uint8 tensor, channel = 3 which is RGB image output
         img_resized = tf.image.resize_images(img_decode, [227, 227])  # resize the image for AlexNet input
 
         return img_resized, one_hot
